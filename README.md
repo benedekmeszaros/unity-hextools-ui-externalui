@@ -11,6 +11,11 @@ External UI is a powerful Unity tool designed to facilitate the seamless integra
 - WebGL
 - Console
 - VR
+
+## Dependencies
+- [```Addressables```](https://docs.unity3d.com/Manual/com.unity.addressables.html)
+- [```TextMeshPro```](https://docs.unity3d.com/Manual/com.unity.textmeshpro.html)
+
 ## Supported Editors
 - Unity 2021 or later
 
