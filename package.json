@@ -8,7 +8,6 @@
     "author": {
         "name": "Mészáros Benedek"
     },
-    "unityRelease": "f1",
     "dependencies": {
         "com.unity.addressables": "1.19.19",
         "com.unity.textmeshpro": "3.0.6"
