@@ -8,13 +8,16 @@
     "author": {
         "name": "Mészáros Benedek"
     },
-    "unityRelease": "2020.1",
+    "unityRelease": "f1",
     "dependencies": {
         "com.unity.addressables": "1.19.19",
         "com.unity.textmeshpro": "3.0.6"
     },
-    "unityReleaseDependencies": {},
-    "optionalDependencies": {
-        "Examples" : "Assets/Hexdog Studio/External UI/Example"    
-    }
+ "samples": [
+   {
+     "displayName": "Example",
+     "description": "Example folder.",
+     "path": "Example"
+   }
+ ]
 }
