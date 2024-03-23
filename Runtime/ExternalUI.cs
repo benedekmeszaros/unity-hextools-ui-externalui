@@ -44,6 +44,6 @@ namespace HexTools.UI
             canvas = GetComponent<Canvas>();
         }
         protected virtual void OnEscape() { }
-        protected abstract void OnInit(IContext value);
+        protected abstract void OnInit(IContext context);
     }
 }
