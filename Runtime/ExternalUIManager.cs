@@ -18,98 +18,130 @@ using UnityEngine.ResourceManagement.ResourceProviders;
 
 namespace HexTools.UI
 {
-  public class ExternalUIManager : MonoBehaviour
-  {
-
-    private class StackEvent
+    public class ExternalUIManager : MonoBehaviour
     {
-      private readonly Action onFire;
-      private bool isFired;
 
-      public StackEvent(Action onFire)
-      {
-        this.onFire = onFire;
-        isFired = false;
-      }
-
-      public void Fire()
-      {
-        if (!isFired)
+        private class StackEvent
         {
-          isFired = true;
-          onFire?.Invoke();
-        }
-      }
-    }
-    private readonly static Stack<StackEvent> escEventStack = new();
-    private bool isEscFired = false;
-    private static ExternalUIManager instance;
-    private static ExternalUIManager Instance
-    {
-      get
-      {
-        if (instance == null)
-        {
-          GameObject obj = new("[External UI]");
-          instance = obj.AddComponent<ExternalUIManager>();
-          DontDestroyOnLoad(obj);
-        }
-        return instance;
-      }
-    }
+            private readonly Action onFire;
+            private bool isFired;
 
-    public static void Load(string key, ExternalUI.IContext context, Action onDispose = null)
-    {
-      var manager = Instance;
-      manager.StartCoroutine(manager.LoadProcess(key, context, onDispose));
-    }
-    public static void Unload(AsyncOperationHandle<SceneInstance> handle)
-    {
-      RemoveActiveEscEvent();
-      Addressables.UnloadSceneAsync(handle);
-    }
-    public static void AddActiveEscEvent(Action onEscape)
-    {
-      escEventStack.Push(new StackEvent(onEscape));
-    }
-    public static void RemoveActiveEscEvent()
-    {
-      if (escEventStack.Count > 0)
-        escEventStack.Pop();
-    }
+            public StackEvent(Action onFire)
+            {
+                this.onFire = onFire;
+                isFired = false;
+            }
 
-    private void Update()
-    {
-      if (Input.GetKey(KeyCode.Escape))
-      {
-        if (!isEscFired)
-        {
-          if (escEventStack.Count > 0)
-            escEventStack.Peek().Fire();
-          isEscFired = true;
+            public void Fire()
+            {
+                if (!isFired)
+                {
+                    isFired = true;
+                    onFire?.Invoke();
+                }
+            }
+            public void Reset()
+            {
+                isFired = false;
+            }
         }
-      }
-      else if (isEscFired)
-        isEscFired = false;
-    }
-    private IEnumerator LoadProcess(string key, ExternalUI.IContext context, Action onDispose = null)
-    {
-      var handle = Addressables.LoadSceneAsync(key, UnityEngine.SceneManagement.LoadSceneMode.Additive);
-      yield return handle;
-      if (handle.Status == AsyncOperationStatus.Succeeded)
-      {
-        var roots = handle.Result.Scene.GetRootGameObjects();
-        foreach (GameObject root in roots)
+        [SerializeField] private int baseLayer = 3;
+        private readonly static Stack<StackEvent> escEventStack = new();
+        private bool isEscFired = false;
+        private bool capture = true;
+        private static ExternalUIManager instance;
+        private static ExternalUIManager Instance
         {
-          var externalUI = root.GetComponentInChildren<ExternalUI>();
-          if (externalUI != null)
-          {
-            externalUI.Init(context, handle, escEventStack.Count, onDispose);
-            AddActiveEscEvent(externalUI.Escape);
-            break;
-          }
+            get
+            {
+                if (instance == null)
+                {
+                    instance = FindAnyObjectByType<ExternalUIManager>();
+                    if(instance == null)
+                    {
+                        GameObject obj = new("[External UI]");
+                        instance = obj.AddComponent<ExternalUIManager>();
+                        DontDestroyOnLoad(obj);
+                    }
+                }
+                return instance;
+            }
         }
-      }
+        public static bool Capture { get => Instance.capture; set => Instance.capture = value; }
+
+
+        public static void Load(string key, ExternalUI.IContext context, Action onDispose = null)
+        {
+            var manager = Instance;
+            manager.StartCoroutine(manager.LoadProcess(key, context, onDispose));
+        }
+        public static void Unload(AsyncOperationHandle<SceneInstance> handle)
+        {
+            RemoveActiveEscEvent();
+            Addressables.UnloadSceneAsync(handle);
+        }
+        public static void AddActiveEscEvent(Action onEscape)
+        {
+            escEventStack.Push(new StackEvent(onEscape));
+        }
+        public static void ResetActiveEscEvent()
+        {
+            if (escEventStack.Count > 0)
+                escEventStack.Peek().Reset();
+        }
+        public static void RemoveActiveEscEvent()
+        {
+            if (escEventStack.Count > 0)
+                escEventStack.Pop();
+        }
+
+        private void Awake()
+        {
+            SceneManager.activeSceneChanged += ClearStack;
+        }
+        private void ClearStack(Scene _old, Scene _new)
+        {
+            escEventStack.Clear();
+        }
+        private void OnDestroy()
+        {
+            SceneManager.activeSceneChanged -= ClearStack;
+        }
+        private void Update()
+        {
+            if (!capture)
+                return;
+
+            if (Input.GetKey(KeyCode.Escape))
+            {
+                if (!isEscFired)
+                {
+                    if (escEventStack.Count > 0)
+                        escEventStack.Peek().Fire();
+                    isEscFired = true;
+                }
+            }
+            else if (isEscFired)
+                isEscFired = false;
+        }
+        private IEnumerator LoadProcess(string key, ExternalUI.IContext context, Action onDispose = null)
+        {
+            var handle = Addressables.LoadSceneAsync(key, UnityEngine.SceneManagement.LoadSceneMode.Additive);
+            yield return handle;
+            if (handle.Status == AsyncOperationStatus.Succeeded)
+            {
+                var roots = handle.Result.Scene.GetRootGameObjects();
+                foreach (GameObject root in roots)
+                {
+                    var externalUI = root.GetComponentInChildren<ExternalUI>();
+                    if (externalUI != null)
+                    {
+                        externalUI.Init(context, handle, escEventStack.Count + baseLayer, onDispose);
+                        AddActiveEscEvent(externalUI.Escape);
+                        break;
+                    }
+                }
+            }
+        }
     }
-  }
 }
